@@ -1,8 +1,11 @@
 use std::collections::HashMap;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
+use serde::{Serialize, Deserialize};
+use std::fs;
+use std::path::Path;
 
 /// Role in conversation
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Role {
     User,
     Assistant,
@@ -18,19 +21,47 @@ impl std::fmt::Display for Role {
 }
 
 /// A single turn in the conversation
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Turn {
     pub role: Role,
     pub content: String,
+    #[serde(skip)] // Don't persist audio buffer to save space
     pub audio: Option<Vec<u8>>,
+    #[serde(with = "serde_millis")]
     pub timestamp: SystemTime,
 }
 
+/// Helper module for SystemTime serialization
+mod serde_millis {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(time: &SystemTime, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let nanos = time.duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        serializer.serialize_u64(nanos)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<SystemTime, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let millis = u64::deserialize(deserializer)?;
+        Ok(UNIX_EPOCH + std::time::Duration::from_millis(millis))
+    }
+}
+
 /// Conversation session manager
+#[derive(Serialize, Deserialize)]
 pub struct ConversationSession {
     session_id: String,
     history: Vec<Turn>,
     context: HashMap<String, String>,
+    #[serde(with = "serde_millis")]
     started_at: SystemTime,
     max_history: usize,
 }
@@ -49,13 +80,31 @@ impl ConversationSession {
 
     /// Generate a unique session ID
     fn generate_session_id() -> String {
-        use std::time::UNIX_EPOCH;
-        
         let duration = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap();
         
         format!("session_{}", duration.as_secs())
+    }
+
+    /// Save session to file
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> std::io::Result<()> {
+        let json = serde_json::to_string_pretty(self)?;
+        fs::write(path, json)?;
+        Ok(())
+    }
+
+    /// Load session from file
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        let content = fs::read_to_string(path)?;
+        let mut session: Self = serde_json::from_str(&content)?;
+        
+        // Ensure max_history is set (in case it wasn't in the file or we change defaults)
+        if session.max_history == 0 {
+            session.max_history = 10;
+        }
+        
+        Ok(session)
     }
 
     /// Add a turn to the conversation

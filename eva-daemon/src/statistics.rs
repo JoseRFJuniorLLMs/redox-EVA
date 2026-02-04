@@ -40,22 +40,15 @@ impl Statistics {
 
     /// Update memory usage
     pub fn update_memory(&mut self) {
-        // Get current memory usage
-        #[cfg(feature = "sysinfo")]
-        {
-            use sysinfo::{ProcessExt, System, SystemExt};
-            let mut sys = System::new_all();
-            sys.refresh_all();
-            
-            if let Some(process) = sys.process(sysinfo::get_current_pid().unwrap()) {
-                self.memory_mb = (process.memory() / 1024 / 1024) as usize;
-            }
-        }
-
-        #[cfg(not(feature = "sysinfo"))]
-        {
-            // Estimate based on typical usage
-            self.memory_mb = 70;
+        use sysinfo::{PidExt, ProcessExt, System, SystemExt};
+        let mut sys = System::new_all();
+        sys.refresh_all();
+        
+        if let Some(process) = sys.process(sysinfo::Pid::from_u32(std::process::id())) {
+            self.memory_mb = (process.memory() / 1024 / 1024) as usize;
+        } else {
+             // Fallback if process not found (rare)
+            self.memory_mb = 0;
         }
     }
 

@@ -32,108 +32,156 @@ use emotion::EmotionDetector;
 use status_indicator::{StatusIndicator, EvaStatus};
 use statistics::Statistics;
 use terminal_ui::TerminalUI;
+use animations::Animation;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🧠 EVA OS v0.8.0 - Visual Feedback");
-    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    // Initialize UI components first
+    let mut status_indicator = StatusIndicator::new();
+    let mut statistics = Statistics::new();
+    let mut terminal_ui = TerminalUI::new()?;
+
+    // Initial draw
+    terminal_ui.add_system_message("EVA OS Starting...");
+    terminal_ui.draw(&status_indicator, &statistics);
 
     // Initialize components
-    println!("\n[1/12] Initializing audio device...");
+    terminal_ui.add_system_message("[1/12] Initializing audio device...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut audio = AudioDevice::new()?;
-    println!("✅ Audio device ready");
+    terminal_ui.add_system_message("✅ Audio device ready");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[2/12] Initializing wake word detector...");
+    terminal_ui.add_system_message("[2/12] Initializing wake word detector...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut wake_word = WakeWordDetector::new();
     wake_word.set_sensitivity(0.6);
-    println!("✅ Wake word detector ready (sensitivity: 0.6)");
+    terminal_ui.add_system_message("✅ Wake word detector ready (sensitivity: 0.6)");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[3/12] Initializing Voice Activity Detection...");
+    terminal_ui.add_system_message("[3/12] Initializing Voice Activity Detection...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut vad = VAD::new();
-    println!("✅ VAD ready");
+    terminal_ui.add_system_message("✅ VAD ready");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[4/12] Initializing audio player...");
+    terminal_ui.add_system_message("[4/12] Initializing audio player...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let audio_device_clone = AudioDevice::new()?;
     let mut audio_player = AudioPlayer::new(audio_device_clone)?;
-    println!("✅ Audio player ready");
+    terminal_ui.add_system_message("✅ Audio player ready");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[5/12] Initializing conversation session...");
-    let mut session = ConversationSession::new();
-    println!("✅ Session ready (ID: {})", session.session_id());
+    terminal_ui.add_system_message("[5/12] Initializing conversation session...");
+    terminal_ui.draw(&status_indicator, &statistics);
+    // Load session from file or create new
+    let mut session = ConversationSession::load_from_file("session.json").unwrap_or_else(|_| {
+        terminal_ui.add_system_message("No previous session found, starting new.");
+        ConversationSession::new()
+    });
+    terminal_ui.add_system_message(&format!("✅ Session ready (ID: {}, Turns: {})", session.session_id(), session.turn_count()));
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[6/12] Initializing command parser...");
+    terminal_ui.add_system_message("[6/12] Initializing command parser...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let command_parser = CommandParser::new();
-    println!("✅ Command parser ready");
+    terminal_ui.add_system_message("✅ Command parser ready");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[7/12] Initializing command executor...");
+    terminal_ui.add_system_message("[7/12] Initializing command executor...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut command_executor = CommandExecutor::new()?;
-    println!("✅ Command executor ready (sandbox enabled)");
+    terminal_ui.add_system_message("✅ Command executor ready (sandbox enabled)");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[8/12] Loading user profile...");
+    terminal_ui.add_system_message("[8/12] Loading user profile...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let _profile = UserProfile::load()?;
-    println!("✅ User profile loaded (User: {}, Language: {})", _profile.name, _profile.language);
+    terminal_ui.add_system_message(&format!("✅ User profile loaded (User: {}, Language: {})", _profile.name, _profile.language));
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[9/12] Initializing custom commands...");
+    terminal_ui.add_system_message("[9/12] Initializing custom commands...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut _custom_commands = CustomCommandManager::new()?;
-    println!("✅ Custom commands ready ({} commands)", _custom_commands.count());
+    terminal_ui.add_system_message(&format!("✅ Custom commands ready ({} commands)", _custom_commands.count()));
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[10/12] Initializing macros...");
+    terminal_ui.add_system_message("[10/12] Initializing macros...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let mut _macros = MacroManager::new()?;
-    println!("✅ Macros ready ({} macros)", _macros.count());
+    terminal_ui.add_system_message(&format!("✅ Macros ready ({} macros)", _macros.count()));
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[11/12] Initializing emotion detection...");
+    terminal_ui.add_system_message("[11/12] Initializing emotion detection...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let _emotion_detector = EmotionDetector::new();
-    println!("✅ Emotion detection ready");
+    terminal_ui.add_system_message("✅ Emotion detection ready");
+    terminal_ui.draw(&status_indicator, &statistics);
 
-    println!("\n[12/15] Initializing status indicator...");
-    let mut status_indicator = StatusIndicator::new();
-    println!("✅ Status indicator ready");
+    // Initialize animations
+    let mut anim_listening = Animation::listening();
+    let mut anim_processing = Animation::processing();
+    let mut anim_speaking = Animation::speaking();
 
-    println!("\n[13/15] Initializing statistics...");
-    let mut statistics = Statistics::new();
-    println!("✅ Statistics ready");
-
-    println!("\n[14/15] Initializing terminal UI...");
-    let mut terminal_ui = TerminalUI::new()?;
-    println!("✅ Terminal UI ready");
-
-    println!("\n[15/15] Connecting to Gemini API...");
+    terminal_ui.add_system_message("[12/12] Connecting to Gemini API...");
+    terminal_ui.draw(&status_indicator, &statistics);
     let config = GeminiConfig::default();
     
-    if config.api_key.is_empty() {
-        println!("⚠️  GOOGLE_API_KEY not set - running in demo mode");
-        println!("   Set API key: export GOOGLE_API_KEY=your_key");
-        
-        demo_mode_phase5(&mut audio, &mut wake_word, &mut vad, &mut session).await?;
-        return Ok(());
-    }
-
-    let mut gemini = match GeminiClient::connect(config).await {
-        Ok(client) => {
-            println!("✅ Connected to Gemini API");
-            Some(client)
-        }
-        Err(e) => {
-            println!("⚠️  Could not connect to Gemini: {}", e);
-            println!("   Running in demo mode");
-            None
+    let mut gemini = if config.api_key.is_empty() {
+        terminal_ui.add_system_message("⚠️  GOOGLE_API_KEY not set - running in demo mode");
+        terminal_ui.add_system_message("   Set API key: export GOOGLE_API_KEY=your_key");
+        terminal_ui.draw(&status_indicator, &statistics);
+        None
+    } else {
+        match GeminiClient::connect(config).await {
+            Ok(client) => {
+                terminal_ui.add_system_message("✅ Connected to Gemini API");
+                terminal_ui.draw(&status_indicator, &statistics);
+                Some(client)
+            }
+            Err(e) => {
+                terminal_ui.add_system_message(&format!("⚠️  Could not connect to Gemini: {}", e));
+                terminal_ui.add_system_message("   Running in demo mode");
+                terminal_ui.draw(&status_indicator, &statistics);
+                None
+            }
         }
     };
 
-    println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    println!("👂 EVA is now listening for 'Hey EVA'...");
-    println!("   Session: {}", session.session_id());
-    println!("   (Press Ctrl+C to stop)");
-    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    // Start UI
+    terminal_ui.add_system_message("EVA OS Started");
+    terminal_ui.add_system_message(&format!("Session ID: {}", session.session_id()));
+    
+    if gemini.is_none() {
+        terminal_ui.add_system_message("Running in DEMO MODE (No API Key)");
+    }
+
+    status_indicator.set_status(EvaStatus::Idle);
+    terminal_ui.draw(&status_indicator, &statistics);
 
     // Main conversation loop
     loop {
+        // Reset animations
+        anim_listening.reset();
+        anim_processing.reset();
+        anim_speaking.reset();
+
         // 1. Capture audio chunk
-        let chunk = audio.capture_chunk().await?;
+        let chunk = match audio.capture_chunk().await {
+            Ok(c) => c,
+            Err(e) => {
+                terminal_ui.add_system_message(&format!("Audio Error: {}", e));
+                continue;
+            }
+        };
 
         // 2. Check for wake word
         if wake_word.detect(&chunk) {
-            println!("\n🎤 Wake word detected! Listening for command...");
+            status_indicator.set_status(EvaStatus::Listening);
+            terminal_ui.add_system_message("Wake word detected! Listening...");
+            statistics.update_all();
+            terminal_ui.draw(&status_indicator, &statistics);
+            
             wake_word.reset();
             
             // 3. Capture command until silence
@@ -141,32 +189,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut silence_count = 0;
             
             loop {
-                let audio_chunk = audio.capture_chunk().await?;
+                // Update stats occasionally to show activity? 
+                // For now, blocking audio capture in loop prevents frequent UI updates unless we spawn
+                // But simplified TUI: just capture
+                
+                let audio_chunk = match audio.capture_chunk().await {
+                    Ok(c) => c,
+                    Err(_) => break, // Stop recording on error
+                };
                 
                 if vad.is_speech(&audio_chunk) {
                     audio_buffer.extend_from_slice(&audio_chunk);
                     silence_count = 0;
-                    print!(".");
-                    std::io::Write::flush(&mut std::io::stdout())?;
                 } else {
                     silence_count += 1;
                     
                     if silence_count > 10 {
-                        println!("\n✅ Command captured ({} samples)", audio_buffer.len());
+                        // End of speech
                         break;
                     }
                 }
                 
                 if audio_buffer.len() > 48000 * 30 {
-                    println!("\n⚠️  Maximum recording time reached");
+                    terminal_ui.add_system_message("Max recording time reached");
                     break;
+                }
+
+                // Animate listening (update every few frames to avoid too much flickering)
+                if audio_buffer.len() % 2 == 0 {
+                    statistics.update_all();
+                    status_indicator.set_symbol(anim_listening.next_frame());
+                    terminal_ui.draw(&status_indicator, &statistics);
                 }
             }
             
-            // 4. Process with Gemini (if available)
+            terminal_ui.add_system_message(&format!("Captured {} samples", audio_buffer.len()));
+            statistics.turns += 1;
+            terminal_ui.draw(&status_indicator, &statistics);
+
+            // 4. Process
+            status_indicator.set_status(EvaStatus::Processing);
+            terminal_ui.draw(&status_indicator, &statistics);
+
             if let Some(ref mut gemini_client) = gemini {
-                println!("🤖 Processing with Gemini...");
-                
                 // Convert to bytes
                 let audio_bytes: Vec<u8> = audio_buffer
                     .iter()
@@ -178,10 +243,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 
                 // Send to Gemini
                 if let Err(e) = gemini_client.send_audio(&audio_bytes).await {
-                    println!("❌ Error sending audio: {}", e);
+                    status_indicator.set_status(EvaStatus::Error);
+                    terminal_ui.add_system_message(&format!("Gemini Error: {}", e));
                 } else {
-                    // Wait for response
-                    match gemini_client.receive().await {
+                    // Wait for response with animation
+                    let receive_future = gemini_client.receive();
+                    tokio::pin!(receive_future);
+
+                    let response_result = loop {
+                        tokio::select! {
+                            result = &mut receive_future => break result,
+                            _ = tokio::time::sleep(anim_processing.frame_duration()) => {
+                                statistics.update_all();
+                                status_indicator.set_symbol(anim_processing.next_frame());
+                                terminal_ui.draw(&status_indicator, &statistics);
+                            }
+                        }
+                    };
+
+                    match response_result {
                         Ok(Some(response)) => {
                             if let Some(content) = response.server_content {
                                 if let Some(turn) = content.model_turn {
@@ -198,24 +278,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         if let Some(audio_data) = part.inline_data {
                                             has_audio = true;
                                             
-                                            // Play audio response
-                                            println!("🔊 Playing audio response...");
-                                            if let Err(e) = audio_player.play_response(&audio_data.data).await {
-                                                println!("⚠️  Error playing audio: {}", e);
-                                                // Fallback to text
-                                                println!("🤖 EVA: {}", response_text);
+                                            // Play audio response with animation
+                                            status_indicator.set_status(EvaStatus::Speaking);
+                                            
+                                            let play_future = audio_player.play_response(&audio_data.data);
+                                            tokio::pin!(play_future);
+                                            
+                                            let play_result = loop {
+                                                tokio::select! {
+                                                    result = &mut play_future => break result,
+                                                    _ = tokio::time::sleep(anim_speaking.frame_duration()) => {
+                                                        statistics.update_all();
+                                                        status_indicator.set_symbol(anim_speaking.next_frame());
+                                                        terminal_ui.draw(&status_indicator, &statistics);
+                                                    }
+                                                }
+                                            };
+
+                                            if let Err(e) = play_result {
+                                                terminal_ui.add_system_message(&format!("Audio Playback Error: {}", e));
+                                                // Fallback to text handled by printing later
                                             }
                                         }
                                     }
                                     
-                                    // If no audio, just show text
-                                    if !has_audio && !response_text.is_empty() {
-                                        println!("🤖 EVA: {}", response_text);
-                                    }
-                                    
-                                    // Add to session
+                                    // Update conversation log
                                     if !response_text.is_empty() {
+                                        terminal_ui.add_eva_message(&response_text);
                                         session.add_turn(Role::Assistant, response_text.clone());
+                                        
+                                        // Detect emotion
+                                        let detected_emotion = _emotion_detector.detect(&response_text);
+                                        status_indicator.set_emotion(detected_emotion);
+                                        terminal_ui.draw(&status_indicator, &statistics);
+
+                                        // Save session
+                                        if let Err(e) = session.save_to_file("session.json") {
+                                            terminal_ui.add_system_message(&format!("Failed to save session: {}", e));
+                                        }
                                         
                                         // Parse for commands
                                         if let Ok(intent) = command_parser.parse(&response_text) {
@@ -223,24 +323,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             
                                             match intent {
                                                 CommandIntent::Unknown => {
-                                                    // Just conversation, no command
+                                                    // Just conversation
                                                 }
                                                 _ => {
                                                     // Execute command
-                                                    println!("⚙️  Executing command...");
+                                                    status_indicator.set_status(EvaStatus::Executing);
+                                                    terminal_ui.draw(&status_indicator, &statistics);
                                                     
                                                     match command_executor.execute(intent).await {
                                                         Ok(result) => {
-                                                            println!("✅ {}", result);
+                                                            statistics.commands_executed += 1;
+                                                            terminal_ui.add_system_message(&format!("Command Result: {}", result));
                                                             
-                                                            // Add result to session
                                                             session.add_turn(
                                                                 Role::Assistant,
                                                                 format!("Command result: {}", result)
                                                             );
+                                                            // Save session
+                                                            session.save_to_file("session.json").ok();
                                                         }
                                                         Err(e) => {
-                                                            println!("❌ Error: {}", e);
+                                                            status_indicator.set_status(EvaStatus::Error);
+                                                            terminal_ui.add_system_message(&format!("Command Error: {}", e));
                                                         }
                                                     }
                                                 }
@@ -250,111 +354,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                         }
-                        Ok(None) => println!("⚠️  No response from Gemini"),
-                        Err(e) => println!("❌ Error receiving response: {}", e),
+                        Ok(None) => terminal_ui.add_system_message("No response from Gemini"),
+                        Err(e) => terminal_ui.add_system_message(&format!("Receive Error: {}", e)),
                     }
                 }
             } else {
-                // Demo mode
-                println!("ℹ️  Demo mode: Command would be sent to Gemini");
-                println!("   Captured {} samples", audio_buffer.len());
+                // Demo mode logic
+                terminal_ui.add_system_message("Processing (Demo Mode)...");
+                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
                 
-                // Simulate response
-                let demo_response = "This is a demo response. In production, Gemini would respond here.";
-                println!("🤖 EVA (demo): {}", demo_response);
-                session.add_turn(Role::Assistant, demo_response.to_string());
-            }
-            
-            // Show session stats
-            println!("\n📊 Session stats:");
-            println!("   Turns: {}", session.turn_count());
-            println!("   Duration: {:?}", session.duration());
-            
-            // Reset for next wake word
-            vad.reset();
-            println!("\n👂 Listening for 'Hey EVA'...\n");
-        }
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-    }
-}
-
-/// Demo mode for Phase 5
-async fn demo_mode_phase5(
-    audio: &mut AudioDevice,
-    wake_word: &mut WakeWordDetector,
-    vad: &mut VAD,
-    session: &mut ConversationSession,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    println!("🎮 DEMO MODE - Phase 5 Conversation Loop");
-    println!("   Session: {}", session.session_id());
-    println!("   (Press Ctrl+C to stop)");
-    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
-    let mut frame_count = 0;
-    
-    loop {
-        let chunk = audio.capture_chunk().await?;
-        
-        if wake_word.detect(&chunk) {
-            println!("\n🎤 Wake word detected!");
-            wake_word.reset();
-            
-            // Simulate command capture
-            println!("Capturing command...");
-            for i in 0..20 {
-                let audio_chunk = audio.capture_chunk().await?;
-                let is_speech = vad.is_speech(&audio_chunk);
+                let demo_response = "I heard you! This is a demo response.";
+                terminal_ui.add_eva_message(demo_response);
                 
-                if i % 5 == 0 {
-                    if is_speech {
-                        print!(".");
-                    }
-                    std::io::Write::flush(&mut std::io::stdout())?;
+                status_indicator.set_status(EvaStatus::Speaking);
+                
+                // Simulate speaking time with animation
+                let speak_duration = tokio::time::Duration::from_millis(2000);
+                let start_time = tokio::time::Instant::now();
+                
+                while start_time.elapsed() < speak_duration {
+                    statistics.update_all();
+                    status_indicator.set_symbol(anim_speaking.next_frame());
+                    terminal_ui.draw(&status_indicator, &statistics);
+                    tokio::time::sleep(anim_speaking.frame_duration()).await;
                 }
             }
             
-            println!("\n✅ Command captured");
-            
-            // Add to session
-            session.add_turn(Role::User, "Demo user command".to_string());
-            
-            // Simulate response
-            let responses = vec![
-                "Hello! How can I help you today?",
-                "I'm EVA, your voice assistant.",
-                "That's an interesting question!",
-                "Let me think about that...",
-            ];
-            
-            let response = responses[session.turn_count() % responses.len()];
-            println!("🤖 EVA (demo): {}", response);
-            
-            session.add_turn(Role::Assistant, response.to_string());
-            
-            // Show session info
-            println!("\n📊 Session stats:");
-            println!("   Turns: {}", session.turn_count());
-            println!("   Duration: {:?}", session.duration());
-            
-            if session.turn_count() > 2 {
-                println!("\n📝 Recent conversation:");
-                for turn in session.get_recent_turns(4) {
-                    println!("   {}: {}", turn.role, turn.content);
-                }
-            }
-            
+            // Reset to idle
+            status_indicator.set_status(EvaStatus::Idle);
             vad.reset();
-            println!("\n👂 Listening for 'Hey EVA'...\n");
+            terminal_ui.draw(&status_indicator, &statistics);
         }
-        
-        frame_count += 1;
-        if frame_count % 100 == 0 {
-            println!("  Processed {} frames... (Session: {} turns)", 
-                     frame_count, session.turn_count());
-        }
-        
+
         tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
     }
 }

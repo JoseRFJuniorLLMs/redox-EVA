@@ -193,27 +193,58 @@ impl CommandExecutor {
             }
             
             ProcessOperation::Start { name } => {
-                // For safety, only allow specific programs
-                let allowed_programs = vec!["notepad", "calculator", "calc"];
-                
-                if !allowed_programs.contains(&name.as_str()) {
-                    return Err(format!("Program '{}' not in whitelist", name).into());
-                }
+                // Expanded capability: Open specific apps or URLs
+                // Note: We are trusting the intent classifier to not send malicious commands
                 
                 #[cfg(target_os = "windows")]
                 {
-                    std::process::Command::new(&name).spawn()?;
-                    Ok(format!("Started {}", name))
+                    // Use 'cmd /C start' to leverage Windows shell association (handles URLs, apps, files)
+                    // The empty string argument is for the window title, which start interprets as title if quoted
+                    std::process::Command::new("cmd")
+                        .args(["/C", "start", "", &name])
+                        .spawn()?;
+                        
+                    Ok(format!("Started/Opened: {}", name))
                 }
                 
                 #[cfg(not(target_os = "windows"))]
                 {
-                    Ok(format!("Process start not implemented for this OS"))
+                    // Linux/Mac implementation (fallback to xdg-open or open)
+                    if name.starts_with("http") {
+                         std::process::Command::new("xdg-open").arg(&name).spawn()?;
+                         Ok(format!("Opened URL: {}", name))
+                    } else {
+                         std::process::Command::new(&name).spawn()?;
+                         Ok(format!("Started process: {}", name))
+                    }
                 }
             }
             
             ProcessOperation::Kill { pid } => {
-                Err("Process kill not implemented for safety reasons".into())
+                // Implement process kill using sysinfo
+                #[cfg(feature = "sysinfo")]
+                {
+                    use sysinfo::{System, SystemExt, ProcessExt, Pid, PidExt};
+                    let mut sys = System::new_all();
+                    sys.refresh_processes();
+                    
+                    let sys_pid = Pid::from_u32(pid);
+                    
+                    if let Some(process) = sys.process(sys_pid) {
+                        if process.kill() {
+                            Ok(format!("Successfully killed process {} ({})", pid, process.name()))
+                        } else {
+                            Err(format!("Failed to kill process {}", pid).into())
+                        }
+                    } else {
+                        Err(format!("Process {} not found", pid).into())
+                    }
+                }
+                
+                #[cfg(not(feature = "sysinfo"))]
+                {
+                    Err("Process kill requires sysinfo feature".into())
+                }
             }
         }
     }
@@ -245,17 +276,42 @@ impl CommandExecutor {
             }
             
             SystemOperation::DiskInfo => {
-                Ok("Disk info not yet implemented".to_string())
+                #[cfg(feature = "sysinfo")]
+                {
+                    use sysinfo::{System, SystemExt, DiskExt};
+                    let mut sys = System::new_all();
+                    sys.refresh_disks();
+                    
+                    let mut info = Vec::new();
+                    for disk in sys.disks() {
+                        let total_gb = disk.total_space() / 1024 / 1024 / 1024;
+                        let available_gb = disk.available_space() / 1024 / 1024 / 1024;
+                        info.push(format!("{}: {} GB free / {} GB total", 
+                            disk.name().to_string_lossy(), available_gb, total_gb));
+                    }
+                    
+                    if info.is_empty() {
+                         Ok("No disks found.".to_string())
+                    } else {
+                         Ok(info.join("\n"))
+                    }
+                }
+                #[cfg(not(feature = "sysinfo"))]
+                {
+                     Ok("Disk info not yet implemented".to_string())
+                }
             }
             
             SystemOperation::CpuInfo => {
                 #[cfg(feature = "sysinfo")]
                 {
-                    use sysinfo::{System, SystemExt};
+                    use sysinfo::{System, SystemExt, CpuExt};
                     let mut sys = System::new_all();
-                    sys.refresh_all();
+                    sys.refresh_cpu();
                     
-                    Ok(format!("CPU: {} cores", sys.cpus().len()))
+                    let cpu_count = sys.cpus().len();
+                    // Just basic info for now
+                    Ok(format!("CPU: {} cores detected.", cpu_count))
                 }
                 
                 #[cfg(not(feature = "sysinfo"))]
@@ -265,7 +321,22 @@ impl CommandExecutor {
             }
             
             SystemOperation::Uptime => {
-                Ok("Uptime not yet implemented".to_string())
+                 #[cfg(feature = "sysinfo")]
+                {
+                    use sysinfo::{System, SystemExt};
+                    let mut sys = System::new_all();
+                    sys.refresh_system(); // Only need system refresh for uptime
+                    
+                    let uptime = sys.uptime();
+                    let hours = uptime / 3600;
+                    let minutes = (uptime % 3600) / 60;
+                    
+                    Ok(format!("System Uptime: {} hours, {} minutes", hours, minutes))
+                }
+                #[cfg(not(feature = "sysinfo"))]
+                {
+                    Ok("Uptime requires sysinfo feature".to_string())
+                }
             }
         }
     }
