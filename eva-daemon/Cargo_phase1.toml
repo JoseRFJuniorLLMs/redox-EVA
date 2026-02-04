@@ -1,0 +1,11 @@
+[package]
+name = "eva-daemon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Fase 1: Apenas dependências básicas para teste de rede
+# Sem tokio, sem TLS ainda
+
+[target.'cfg(target_os = "redox")'.dependencies]
+redox_syscall = "0.5"

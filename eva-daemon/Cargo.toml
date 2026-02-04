@@ -1,0 +1,30 @@
+[package]
+name = "eva-daemon"
+version = "0.3.0"
+edition = "2021"
+authors = ["Jose R F Junior <jrfjunior@example.com>"]
+description = "EVA AI Voice Assistant for Redox OS"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1.40", features = ["rt-multi-thread", "net", "io-util", "time", "macros"], default-features = false }
+tokio-tungstenite = { version = "0.20", features = ["rustls-tls-webpki-roots"] }
+rustls = "0.23"
+rustls-native-certs = "0.7"
+rustls-pemfile = "2.0"
+webpki-roots = "0.26"
+tokio-rustls = "0.26"
+futures-util = "0.3"
+url = "2.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+
+[target.'cfg(target_os = "redox")'.dependencies]
+redox_syscall = "0.5"
+
+[profile.release]
+opt-level = "z"     # Otimizar para tamanho
+lto = true          # Link-Time Optimization
+codegen-units = 1   # Melhor otimização
+strip = true        # Remover símbolos de debug
