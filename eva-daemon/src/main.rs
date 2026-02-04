@@ -12,6 +12,10 @@ mod user_profile;
 mod custom_commands;
 mod macros;
 mod emotion;
+mod status_indicator;
+mod statistics;
+mod animations;
+mod terminal_ui;
 
 use audio::AudioDevice;
 use wake_word::WakeWordDetector;
@@ -25,10 +29,13 @@ use user_profile::UserProfile;
 use custom_commands::CustomCommandManager;
 use macros::MacroManager;
 use emotion::EmotionDetector;
+use status_indicator::{StatusIndicator, EvaStatus};
+use statistics::Statistics;
+use terminal_ui::TerminalUI;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("🧠 EVA OS v0.7.0 - Advanced Voice Features");
+    println!("🧠 EVA OS v0.8.0 - Visual Feedback");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     // Initialize components
@@ -78,7 +85,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _emotion_detector = EmotionDetector::new();
     println!("✅ Emotion detection ready");
 
-    println!("\n[12/12] Connecting to Gemini API...");
+    println!("\n[12/15] Initializing status indicator...");
+    let mut status_indicator = StatusIndicator::new();
+    println!("✅ Status indicator ready");
+
+    println!("\n[13/15] Initializing statistics...");
+    let mut statistics = Statistics::new();
+    println!("✅ Statistics ready");
+
+    println!("\n[14/15] Initializing terminal UI...");
+    let mut terminal_ui = TerminalUI::new()?;
+    println!("✅ Terminal UI ready");
+
+    println!("\n[15/15] Connecting to Gemini API...");
     let config = GeminiConfig::default();
     
     if config.api_key.is_empty() {
