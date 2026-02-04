@@ -16,6 +16,7 @@ mod status_indicator;
 mod statistics;
 mod animations;
 mod terminal_ui;
+mod timemachine;
 
 use audio::AudioDevice;
 use wake_word::WakeWordDetector;
@@ -46,33 +47,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     terminal_ui.draw(&status_indicator, &statistics);
 
     // Initialize components
-    terminal_ui.add_system_message("[1/12] Initializing audio device...");
+    terminal_ui.add_system_message("[1/13] Initializing audio device...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut audio = AudioDevice::new()?;
     terminal_ui.add_system_message("✅ Audio device ready");
     terminal_ui.draw(&status_indicator, &statistics);
+    
 
-    terminal_ui.add_system_message("[2/12] Initializing wake word detector...");
+
+    terminal_ui.add_system_message("[2/13] Initializing wake word detector...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut wake_word = WakeWordDetector::new();
     wake_word.set_sensitivity(0.6);
     terminal_ui.add_system_message("✅ Wake word detector ready (sensitivity: 0.6)");
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[3/12] Initializing Voice Activity Detection...");
+    terminal_ui.add_system_message("[3/13] Initializing Voice Activity Detection...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut vad = VAD::new();
     terminal_ui.add_system_message("✅ VAD ready");
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[4/12] Initializing audio player...");
+    terminal_ui.add_system_message("[4/13] Initializing audio player...");
     terminal_ui.draw(&status_indicator, &statistics);
     let audio_device_clone = AudioDevice::new()?;
     let mut audio_player = AudioPlayer::new(audio_device_clone)?;
     terminal_ui.add_system_message("✅ Audio player ready");
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[5/12] Initializing conversation session...");
+    terminal_ui.add_system_message("[5/13] Initializing conversation session...");
     terminal_ui.draw(&status_indicator, &statistics);
     // Load session from file or create new
     let mut session = ConversationSession::load_from_file("session.json").unwrap_or_else(|_| {
@@ -82,37 +85,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     terminal_ui.add_system_message(&format!("✅ Session ready (ID: {}, Turns: {})", session.session_id(), session.turn_count()));
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[6/12] Initializing command parser...");
+    terminal_ui.add_system_message("[6/13] Initializing command parser...");
     terminal_ui.draw(&status_indicator, &statistics);
     let command_parser = CommandParser::new();
     terminal_ui.add_system_message("✅ Command parser ready");
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[7/12] Initializing command executor...");
+    terminal_ui.add_system_message("[7/13] Initializing command executor...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut command_executor = CommandExecutor::new()?;
     terminal_ui.add_system_message("✅ Command executor ready (sandbox enabled)");
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[8/12] Loading user profile...");
+    terminal_ui.add_system_message("[8/13] Loading user profile...");
     terminal_ui.draw(&status_indicator, &statistics);
     let _profile = UserProfile::load()?;
     terminal_ui.add_system_message(&format!("✅ User profile loaded (User: {}, Language: {})", _profile.name, _profile.language));
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[9/12] Initializing custom commands...");
+    terminal_ui.add_system_message("[9/13] Initializing custom commands...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut _custom_commands = CustomCommandManager::new()?;
     terminal_ui.add_system_message(&format!("✅ Custom commands ready ({} commands)", _custom_commands.count()));
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[10/12] Initializing macros...");
+    terminal_ui.add_system_message("[10/13] Initializing macros...");
     terminal_ui.draw(&status_indicator, &statistics);
     let mut _macros = MacroManager::new()?;
     terminal_ui.add_system_message(&format!("✅ Macros ready ({} macros)", _macros.count()));
     terminal_ui.draw(&status_indicator, &statistics);
 
-    terminal_ui.add_system_message("[11/12] Initializing emotion detection...");
+    terminal_ui.add_system_message("[11/13] Initializing emotion detection...");
     terminal_ui.draw(&status_indicator, &statistics);
     let _emotion_detector = EmotionDetector::new();
     terminal_ui.add_system_message("✅ Emotion detection ready");
@@ -123,7 +126,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut anim_processing = Animation::processing();
     let mut anim_speaking = Animation::speaking();
 
-    terminal_ui.add_system_message("[12/12] Connecting to Gemini API...");
+    terminal_ui.add_system_message("[12/13] Connecting to Gemini API...");
     terminal_ui.draw(&status_indicator, &statistics);
     let config = GeminiConfig::default();
     
@@ -147,6 +150,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     };
+
+    // [13/13] Initialize Time Machine
+    terminal_ui.add_system_message("[13/13] Initializing Time Machine (NPU)...");
+    terminal_ui.draw(&status_indicator, &statistics);
+    
+    #[cfg(feature = "timemachine")]
+    let timemachine_res = crate::timemachine::TimeMachine::new().await;
+    
+    #[cfg(not(feature = "timemachine"))]
+    let timemachine_res: Result<crate::timemachine::TimeMachine, Box<dyn std::error::Error>> = Err("Feature disabled".into());
+
+    let _timemachine = match timemachine_res {
+        Ok(tm) => {
+            terminal_ui.add_system_message("✅ Time Machine ready (Encrypted & Local)");
+            let tm_arc = std::sync::Arc::new(tm);
+            let tm_clone = tm_arc.clone();
+            
+            // Start background recording
+            tokio::spawn(async move {
+                tm_clone.start_recording().await;
+            });
+            Some(tm_arc)
+        },
+        Err(e) => {
+            terminal_ui.add_system_message(&format!("⚠️ Time Machine disabled: {}", e));
+            None
+        }
+    };
+    terminal_ui.draw(&status_indicator, &statistics);
 
     // Start UI
     terminal_ui.add_system_message("EVA OS Started");

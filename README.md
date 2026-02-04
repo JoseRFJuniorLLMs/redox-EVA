@@ -1,295 +1,124 @@
-# 🌟 EVA OS
+# 🌟 EVA OS (v0.13.0)
 
-**The World's First Voice-Controlled Operating System**
+**The World's First Privacy-First, AI-Native Operating System.**
 
 [![Rust](https://img.shields.io/badge/rust-nightly-orange.svg)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Redox OS](https://img.shields.io/badge/Redox%20OS-Based-red.svg)](https://www.redox-os.org/)
-[![AI Powered](https://img.shields.io/badge/AI-Gemini%202.5-blue.svg)](https://ai.google.dev/gemini-api)
+[![Status](https://img.shields.io/badge/Status-Stable-green.svg)]()
+[![AI](https://img.shields.io/badge/AI-Hybrid%20(Local+Cloud)-purple.svg)]()
 
-> "Your voice is your interface. No keyboard, no mouse - just natural conversation."
-
----
-## EVA OS - Voice-Controlled Operating System
-
-**EVA OS** (Enhanced Voice Assistant Operating System) is a revolutionary voice-first operating system built on Redox OS, featuring an AI-powered assistant that responds to natural language commands.
-
-## 🎯 Vision
-
-Create a fully voice-controlled operating system where users can interact with their computer naturally through conversation, eliminating the need for traditional keyboard and mouse input for most tasks.
-
-## ✨ Features
-
-### Core Capabilities (v0.7.0)
-- 🎤 **Always-On Voice Recognition** - Responds to "Hey EVA"
-- 🤖 **AI-Powered Conversations** - Natural language understanding via Gemini
-- 🎵 **Audio Responses** - Text-to-speech with emotional context
-- 💻 **System Control** - Execute commands through voice
-- 🔒 **Secure Sandbox** - Isolated file operations at `~/.eva/sandbox/`
-- 👤 **User Profiles** - Personalized preferences and settings
-
-### Advanced Features
-- ⚡ **Custom Commands** - Create your own voice shortcuts with triggers
-- 🎬 **Voice Macros** - Record and replay command sequences
-- 😊 **Emotion Detection** - Understands 8 different user emotions
-- 📁 **File Operations** - Create, delete, copy, move, list, read files
-- ⚙️ **System Info** - Memory, CPU, disk information by voice
-- 🔄 **Session Management** - Maintains conversation context
-
-## 🏗️ Architecture
-
-EVA OS consists of:
-- **eva-daemon**: Core voice assistant service (14 Rust modules, ~4,500 lines)
-- **Redox OS Integration**: Custom build configuration
-- **Gemini API**: AI conversation engine
-- **Configuration**: User profiles, custom commands, macros in `~/.eva/`
-
-## 📊 Current Status
-
-**Version:** 0.7.0  
-**Progress:** 70% Complete (7/10 phases)  
-**Last Updated:** 2026-02-04
-
-### ✅ Completed Phases
-1. ✅ **Network Connectivity** - DNS, TCP connections
-2. ✅ **TLS/SSL Security** - rustls, HTTPS support
-3. ✅ **WebSocket + Gemini API** - Real-time AI communication
-4. ✅ **Audio Integration** - Mic capture, wake word, VAD
-5. ✅ **Full AI Conversation Loop** - Audio playback, session management
-6. ✅ **System Command Integration** - Command parsing, sandboxed execution
-7. ✅ **Advanced Voice Features** - Profiles, custom commands, macros, emotions
-
-### 🚧 Upcoming Phases
-8. 🚧 **Visual Feedback** - Status indicators, UI, animations
-9. 🚧 **Accessibility** - Multi-language, voice customization
-10. 🚧 **Advanced AI** - Context learning, predictive suggestions
-# Configure
-make config recipe=eva-os
-
-# Build (1-2 hours first time)
-make all
-
-# Run in QEMU
-make qemu
-```
+> "Your voice is your interface. Your privacy is paramount. Your past is secure."
 
 ---
 
-## 💬 Voice Commands
+## 🚀 What is EVA OS?
 
-EVA OS understands natural language. Here are some examples:
+**EVA OS** is a next-generation operating system built on **Redox OS** (Rust microkernel), designed from the ground up for **voice interaction** and **AI integration**. 
 
-### File Operations
-```
-"EVA, create a folder called projects"
-"Copy all PDF files to the backup folder"
-"Delete the file test.log"
-"Show me what's in the documents folder"
-"Rename report.pdf to final_report.pdf"
-```
-
-### System Control
-```
-"EVA, show me the memory usage"
-"What processes are running?"
-"Open the web browser"
-"Close all windows"
-"Restart the computer"
-```
-
-### Text Input
-```
-"EVA, type 'Hello World'"
-"Select all text"
-"Copy this"
-"Paste here"
-"Save the file"
-```
-
-### Network Operations
-```
-"What's my IP address?"
-"Test connection to Google"
-"Connect to WiFi 'Home'"
-"Download the file from [URL]"
-```
+Unlike traditional OSs that bolt AI on top, EVA OS puts AI at the kernel level of user interaction, acting as a "living" shell that understands natural language, manages your system, and enables a "Time Machine" memory of your digital life—all whilst respecting your privacy through strict **Local-First** processing.
 
 ---
 
-## 📊 Current Status
+## ✨ Key Features (v0.13.0)
 
-### ✅ Completed Phases
+### 🧠 Hybrid AI Architecture
+- **Online Intelligence**: Connects to **Gemini Pro/Flash** for complex reasoning and world knowledge.
+- **Offline Privacy**: Uses local **NPU (Neural Processing Unit)** for sensitive tasks (OCR, Screen Analysis, Wake Word).
+- **Zero-Latency Voice**: Local VAD (Voice Activity Detection) ensures instant response.
 
-| Phase | Feature | Status |
-|-------|---------|--------|
-| **Phase 1** | Network Connectivity | ✅ Complete |
-| **Phase 2** | TLS/SSL Security | ✅ Complete |
-| **Phase 3** | WebSocket + Gemini API | ✅ Complete |
-| **Phase 4** | Audio Integration | ✅ Complete |
+### 🕰️ Time Machine AI (New in v0.13!)
+A privacy-focused implementation of "Photographic Memory" for your PC:
+- **Continuous Recording**: Captures encrypted snapshots of your workflow.
+- **Semantic Search**: Ask *"What was I working on yesterday morning?"* instead of searching files.
+- **100% Local & Encrypted**: Uses **AES-256-GCM**. No data ever leaves your device.
+- **Smart Filtering**: Automatically blocks banking apps, incognito mode, and sensitive windows.
 
-### 🚧 In Development
+### 🖥️ Visual & Voice Experience
+- **Terminal UI**: Beautiful, lag-free TUI with real-time audio visualization.
+- **Emotion Engine**: EVA detects your mood and adapts its voice/responses.
+- **System Control**: Open apps, kill processes, and manage files naturally. *("EVA, kill the frozen browser", "Create a backup of my project")*.
+- **Audio Playback**: Full TTS (Text-to-Speech) responses.
 
-| Phase | Feature | ETA |
-|-------|---------|-----|
-| **Phase 5** | Full AI Conversation Loop | 1 week |
-| **Phase 6** | System Command Execution | 2 weeks |
-| **Phase 7** | Advanced Voice Features | 3 weeks |
-| **Phase 8** | Visual Feedback System | 4 weeks |
+---
+
+## 📊 Project Status
+
+**Current Version:** 0.13.0  
+**Progress:** Phase 13/16 Complete  
+
+| Phase | Feature | Status | Technology |
+|:---:|:---|:---:|:---|
+| 1-4 | **Core Network & SSL** | ✅ Done | `tokio`, `rustls` |
+| 5-7 | **Conversation Loop** | ✅ Done | `google-generative-ai`, `cpal` |
+| 8 | **Visual Feedback** | ✅ Done | `ratatui`, `termion` |
+| 9 | **Long-term Memory** | ✅ Done | `serde_json` |
+| 10 | **System Control** | ✅ Done | `sysinfo`, `std::process` |
+| 13 | **Time Machine AI** | ✅ Done | **`ort` (ONNX), `faiss`, `AES-256`** |
+| 14 | **Offline Commands** | 🚧 Next | `vosk`, `regex` |
+| 15 | **Local Voice (TTS)** | 🗓️ Planned | `piper-rs` |
+
+---
+
+## 🛠️ Usage
+
+### Prerequisites
+- **Rust (Nightly)**
+- **Windows / Linux / Redox OS**
+- Optional: **NPU** (Intel/AMD/Qualcomm) for accelerated Time Machine.
+
+### Running EVA
+```bash
+# Clone the repository
+git clone https://github.com/JoseRFJuniorLLMs/EVA-OS.git
+cd EVA-OS/eva-daemon
+
+# Run with Time Machine enabled
+cargo run --release --features timemachine
+```
+
+### Voice Commands
+- **System**: *"Open Calculator"*, *"What is my RAM usage?"*, *"Close Firefox"*
+- **Time Machine**: *"What code was I writing at 10 AM?"*, *"Show me the email from John"*
+- **General**: *"Tell me a joke"*, *"Explain Quantum Physics"*
+- **Privacy**: *"Pause recording"*, *"Delete history from today"*
 
 ---
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TD
+    User[User Voice] --> Audio[Audio Capture (cpal)]
+    Audio --> VAD[VAD & Wake Word]
+    
+    subgraph "EVA Daemon (Local)"
+        VAD --> |"Hey EVA"| Core[Core Loop]
+        Core --> NPU[NPU Delegate (ort)]
+        NPU --> OCR[OCR Engine]
+        NPU --> Embed[Embedding Engine]
+        Core --> TUI[Terminal UI]
+        Core --> Sys[System Executor]
+    end
+    
+    subgraph "Secure Storage"
+        OCR --> DB[(Encrypted SQLite)]
+        Embed --> Vector[(FAISS Index)]
+        DB --> |AES-256| Disk[Local Disk]
+    end
+    
+    subgraph "Cloud (Optional)"
+        Core --> |JSON| Gemini[Gemini API]
+    end
 ```
-┌─────────────────────────────────────────────┐
-│              User Voice Input               │
-└──────────────┬──────────────────────────────┘
-               │
-┌──────────────▼──────────────────────────────┐
-│         EVA Voice Processing                │
-│  - Wake word: "Hey EVA"                     │
-│  - Voice Activity Detection                 │
-│  - Audio preprocessing                      │
-└──────────────┬──────────────────────────────┘
-               │
-┌──────────────▼──────────────────────────────┐
-│         Gemini AI Processing                │
-│  - Speech-to-Text                           │
-│  - Natural Language Understanding           │
-│  - Command Execution                        │
-│  - Text-to-Speech Response                  │
-└──────────────┬──────────────────────────────┘
-               │
-┌──────────────▼──────────────────────────────┐
-│         Redox OS (Microkernel)              │
-│  - File system                              │
-│  - Process management                       │
-│  - Memory management                        │
-│  - Device drivers                           │
-└─────────────────────────────────────────────┘
-```
-
----
-
-## 📚 Documentation
-
-- [**Phase 1 Guide**](./fase1.md) - Network connectivity
-- [**Phase 2 Guide**](./fase2.md) - TLS/SSL implementation
-- [**Phase 3 Guide**](./fase3.md) - WebSocket + Gemini
-- [**Phase 4 Guide**](./fase4.md) - Audio integration
-- [**Build Instructions**](./BUILD_EVA_OS.md) - How to build EVA OS
-- [**Complete Vision**](./claude.md) - Full project roadmap
-
----
-
-## 🎓 Why EVA OS?
-
-### For Users
-- **Accessibility** - Perfect for users with mobility limitations
-- **Productivity** - Faster than typing for many tasks
-- **Natural** - Speak naturally, no command memorization
-- **Hands-Free** - Work while doing other things
-
-### For Developers
-- **Open Source** - MIT License, fully transparent
-- **Modern Stack** - Rust, Redox OS, Gemini AI
-- **Extensible** - Easy to add new voice commands
-- **Educational** - Learn OS development and AI integration
-
-### For the Future
-- **Innovation** - Pushing boundaries of human-computer interaction
-- **Privacy** - Local processing option available
-- **Security** - Microkernel architecture
-- **Community** - Growing ecosystem of contributors
 
 ---
 
 ## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Test & Report** - Try EVA OS and report issues
-2. **Translate** - Add support for more languages
-3. **Develop** - Implement new voice commands
-4. **Document** - Improve documentation
-5. **Spread the Word** - Share EVA OS with others
-
-### Development Setup
-
-```bash
-# Fork the repository
-git clone https://github.com/YOUR_USERNAME/EVA-OS.git
-cd EVA-OS
-
-# Create feature branch
-git checkout -b feature/amazing-feature
-
-# Make changes and test
-cd eva-daemon
-cargo build --release
-cargo test
-
-# Commit and push
-git commit -m "Add amazing feature"
-git push origin feature/amazing-feature
-
-# Open Pull Request
-```
-
----
+Contributions are welcome! We are especially looking for help with:
+1. **Redox OS Drivers**: Improving audio driver stability on bare metal.
+2. **Local LLMs**: Integrating `llama.rs` for full offline chat.
+3. **UI/UX**: Improving the TUI animations.
 
 ## 📄 License
-
-EVA OS is open source software licensed under the [MIT License](./LICENSE).
-
-```
-Copyright (c) 2026 Jose R F Junior
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software.
-```
-
----
-
-## 🙏 Acknowledgments
-
-- **Redox OS Team** - For the amazing microkernel OS
-- **Google Gemini** - For the powerful AI model
-- **Rust Community** - For the incredible language and tools
-- **Contributors** - Everyone who helps make EVA OS better
-
----
-
-## 📞 Contact & Support
-
-- **GitHub:** [@JoseRFJuniorLLMs](https://github.com/JoseRFJuniorLLMs)
-- **Project:** [EVA OS](https://github.com/JoseRFJuniorLLMs/EVA-OS)
-- **Issues:** [Report a Bug](https://github.com/JoseRFJuniorLLMs/EVA-OS/issues)
-- **Discussions:** [Join the Conversation](https://github.com/JoseRFJuniorLLMs/EVA-OS/discussions)
-
----
-
-## 🌟 Star History
-
-If you like EVA OS, please give us a star! ⭐
-
----
-
-**Made with ❤️ by the EVA OS Community**
-
-**Version:** 0.4.0 (Phase 4 Complete)  
-**Last Updated:** 2026-02-04  
-**Status:** 🚧 Active Development
-
----
-
-## 🎬 See It In Action
-
-> Coming soon: Video demonstrations of EVA OS in action!
-
----
-
-**EVA OS - The Future of Computing is Voice** 🎤
+MIT License - Copyright (c) 2026 Jose R F Junior
