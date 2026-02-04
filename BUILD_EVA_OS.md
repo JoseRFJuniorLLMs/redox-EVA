@@ -1,4 +1,4 @@
-# 🚀 Redox-EVA OS - Build Instructions
+# 🚀 EVA OS - Build Instructions
 
 ## Overview
 

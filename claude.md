@@ -1,8 +1,8 @@
-# 🧠 Redox-EVA OS - Complete Vision & Roadmap
+# 🧠 EVA OS - Complete Vision & Roadmap
 
 ## 📖 Executive Summary
 
-**Redox-EVA OS** is a revolutionary voice-controlled operating system based on Redox OS, where **EVERY** system operation can be performed through natural voice commands. From basic file operations to advanced system administration, users will interact with their computer entirely through conversation with EVA (Enhanced Voice Assistant).
+**EVA OS** is a revolutionary voice-controlled operating system based on Redox OS, where **EVERY** system operation can be performed through natural voice commands. From basic file operations to advanced system administration, users will interact with their computer entirely through conversation with EVA (Enhanced Voice Assistant).
 
 ---
 
