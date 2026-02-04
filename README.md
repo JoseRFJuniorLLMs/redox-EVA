@@ -10,46 +10,59 @@
 > "Your voice is your interface. No keyboard, no mouse - just natural conversation."
 
 ---
+## EVA OS - Voice-Controlled Operating System
 
-## 🎯 What is EVA OS?
+**EVA OS** (Enhanced Voice Assistant Operating System) is a revolutionary voice-first operating system built on Redox OS, featuring an AI-powered assistant that responds to natural language commands.
 
-**EVA OS** (Enhanced Voice Assistant Operating System) is a revolutionary operating system where **EVERY** operation can be performed through natural voice commands. Built on the secure foundation of Redox OS and powered by Google Gemini AI, EVA OS represents the future of human-computer interaction.
+## 🎯 Vision
 
-### Key Features
+Create a fully voice-controlled operating system where users can interact with their computer naturally through conversation, eliminating the need for traditional keyboard and mouse input for most tasks.
 
-- 🎤 **Always Listening** - Wake word activation ("Hey EVA")
-- 🗣️ **Natural Language** - No command memorization required
-- 🔐 **Secure by Design** - Built on Redox OS microkernel
-- 🤖 **AI-Powered** - Google Gemini 2.5 Flash integration
-- 🌍 **Multi-Language** - Portuguese, English, Spanish support
-- ♿ **Accessibility First** - Complete OS operation by voice alone
+## ✨ Features
 
----
+### Core Capabilities (v0.7.0)
+- 🎤 **Always-On Voice Recognition** - Responds to "Hey EVA"
+- 🤖 **AI-Powered Conversations** - Natural language understanding via Gemini
+- 🎵 **Audio Responses** - Text-to-speech with emotional context
+- 💻 **System Control** - Execute commands through voice
+- 🔒 **Secure Sandbox** - Isolated file operations at `~/.eva/sandbox/`
+- 👤 **User Profiles** - Personalized preferences and settings
 
-## 🚀 Quick Start
+### Advanced Features
+- ⚡ **Custom Commands** - Create your own voice shortcuts with triggers
+- 🎬 **Voice Macros** - Record and replay command sequences
+- 😊 **Emotion Detection** - Understands 8 different user emotions
+- 📁 **File Operations** - Create, delete, copy, move, list, read files
+- ⚙️ **System Info** - Memory, CPU, disk information by voice
+- 🔄 **Session Management** - Maintains conversation context
 
-### Download & Install
+## 🏗️ Architecture
 
-```bash
-# Download latest ISO
-wget https://github.com/JoseRFJuniorLLMs/EVA-OS/releases/latest/eva-os.iso
+EVA OS consists of:
+- **eva-daemon**: Core voice assistant service (14 Rust modules, ~4,500 lines)
+- **Redox OS Integration**: Custom build configuration
+- **Gemini API**: AI conversation engine
+- **Configuration**: User profiles, custom commands, macros in `~/.eva/`
 
-# Write to USB
-sudo dd if=eva-os.iso of=/dev/sdX bs=4M status=progress
+## 📊 Current Status
 
-# Boot from USB and follow voice prompts
-```
+**Version:** 0.7.0  
+**Progress:** 70% Complete (7/10 phases)  
+**Last Updated:** 2026-02-04
 
-### Build from Source
+### ✅ Completed Phases
+1. ✅ **Network Connectivity** - DNS, TCP connections
+2. ✅ **TLS/SSL Security** - rustls, HTTPS support
+3. ✅ **WebSocket + Gemini API** - Real-time AI communication
+4. ✅ **Audio Integration** - Mic capture, wake word, VAD
+5. ✅ **Full AI Conversation Loop** - Audio playback, session management
+6. ✅ **System Command Integration** - Command parsing, sandboxed execution
+7. ✅ **Advanced Voice Features** - Profiles, custom commands, macros, emotions
 
-```bash
-# Clone repository
-git clone https://github.com/JoseRFJuniorLLMs/EVA-OS.git
-cd EVA-OS/redox-EVA
-
-# Initialize submodules
-git submodule update --init --recursive
-
+### 🚧 Upcoming Phases
+8. 🚧 **Visual Feedback** - Status indicators, UI, animations
+9. 🚧 **Accessibility** - Multi-language, voice customization
+10. 🚧 **Advanced AI** - Context learning, predictive suggestions
 # Configure
 make config recipe=eva-os
 
