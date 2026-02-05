@@ -1,6 +1,6 @@
 [package]
 name = "eva-daemon"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 authors = ["Jose R F Junior <jrfjunior@example.com>"]
 description = "EVA AI Voice Assistant for Redox OS"
@@ -21,8 +21,8 @@ serde_json = "1.0"
 base64 = "0.21"
 regex = "1.10"
 sysinfo = "0.29"
-# Fixed: ort 2.0 is prerelease, use stable 1.16 or pinned RC
-ort = { version = "1.16", optional = true }
+# ONNX Runtime bindings (2.0 RC for compatibility)
+ort = { version = "2.0.0-rc.11", optional = true }
 image = "0.25"
 screenshots = "0.4"
 rusqlite = { version = "0.32", features = ["bundled"] }
@@ -37,11 +37,17 @@ unicode-segmentation = "1.10"
 sha2 = "0.10"
 # Added for window title detection (privacy filter)
 active-win-pos-rs = "0.8"
+# Structured logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+# Offline Speech-to-Text (Vosk)
+vosk = { version = "0.2", optional = true }
 
 [features]
 default = []
 timemachine = ["ort"]
 sysinfo = []
+offline-stt = ["vosk"]
 
 [target.'cfg(target_os = "redox")'.dependencies]
 redox_syscall = "0.5"

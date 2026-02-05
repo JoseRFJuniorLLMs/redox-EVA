@@ -259,4 +259,108 @@ mod tests {
         // Test that user patterns work
         assert!(capture.user_blocked_patterns.contains(&"secret project".to_string()));
     }
+
+    #[test]
+    fn test_add_blocked_pattern() {
+        let mut capture = ScreenCapture {
+            screens: vec![],
+            user_blocked_patterns: vec![],
+            privacy_enabled: true,
+        };
+
+        capture.add_blocked_pattern("MY_SECRET".to_string());
+        // Should be lowercased
+        assert!(capture.user_blocked_patterns.contains(&"my_secret".to_string()));
+    }
+
+    #[test]
+    fn test_privacy_toggle() {
+        let mut capture = ScreenCapture {
+            screens: vec![],
+            user_blocked_patterns: vec![],
+            privacy_enabled: true,
+        };
+
+        assert!(capture.privacy_enabled);
+
+        capture.set_privacy_enabled(false);
+        assert!(!capture.privacy_enabled);
+
+        capture.set_privacy_enabled(true);
+        assert!(capture.privacy_enabled);
+    }
+
+    #[test]
+    fn test_default_trait() {
+        // Default should work
+        let _capture: ScreenCapture = Default::default();
+    }
+
+    #[test]
+    fn test_blocked_apps() {
+        // Test that blocked apps are detected
+        let sensitive_apps = vec![
+            "1Password.exe",
+            "LastPass",
+            "Bitwarden",
+            "KeePassXC",
+            "Authenticator",
+        ];
+
+        for app in sensitive_apps {
+            let app_lower = app.to_lowercase();
+            let should_block = BLOCKED_APP_NAMES.iter()
+                .any(|blocked| app_lower.contains(blocked));
+            assert!(should_block, "Expected app '{}' to be blocked", app);
+        }
+    }
+
+    #[test]
+    fn test_crypto_wallets_blocked() {
+        let wallet_titles = vec![
+            "MetaMask - Ethereum Wallet",
+            "Ledger Live",
+            "Trezor Suite",
+            "Coinbase - Buy Bitcoin",
+            "Binance Trading",
+        ];
+
+        for title in wallet_titles {
+            let title_lower = title.to_lowercase();
+            let should_block = BLOCKED_WINDOW_TITLES.iter()
+                .any(|blocked| title_lower.contains(blocked));
+            assert!(should_block, "Expected crypto wallet '{}' to be blocked", title);
+        }
+    }
+
+    #[test]
+    fn test_brazilian_banks_blocked() {
+        let bank_titles = vec![
+            "Nubank - Sua Conta",
+            "Itaú - Internet Banking",
+            "Bradesco - NetEmpresa",
+            "Santander - Pessoa Física",
+            "Caixa - Internet Banking",
+        ];
+
+        for title in bank_titles {
+            let title_lower = title.to_lowercase();
+            let should_block = BLOCKED_WINDOW_TITLES.iter()
+                .any(|blocked| title_lower.contains(blocked));
+            assert!(should_block, "Expected Brazilian bank '{}' to be blocked", title);
+        }
+    }
+
+    #[test]
+    fn test_no_screens_error() {
+        let capture = ScreenCapture {
+            screens: vec![],
+            user_blocked_patterns: vec![],
+            privacy_enabled: false,
+        };
+
+        let result = capture.take_screenshot();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("No screens found"));
+    }
 }

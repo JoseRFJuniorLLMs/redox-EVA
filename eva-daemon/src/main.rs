@@ -17,6 +17,8 @@ mod statistics;
 mod animations;
 mod terminal_ui;
 mod timemachine;
+mod logging;
+mod stt;
 
 use audio::AudioDevice;
 use wake_word::WakeWordDetector;

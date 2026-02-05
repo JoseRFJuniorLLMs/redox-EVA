@@ -404,12 +404,121 @@ mod tests {
     #[test]
     fn test_context_values() {
         let mut session = ConversationSession::new();
-        
+
         session.set_context("user_name".to_string(), "Alice".to_string());
         session.set_context("location".to_string(), "Lisbon".to_string());
-        
+
         assert_eq!(session.get_context_value("user_name"), Some(&"Alice".to_string()));
         assert_eq!(session.get_context_value("location"), Some(&"Lisbon".to_string()));
         assert_eq!(session.get_context_value("unknown"), None);
+    }
+
+    #[test]
+    fn test_clear_session() {
+        let mut session = ConversationSession::new();
+
+        session.add_turn(Role::User, "Test".to_string());
+        session.set_context("key".to_string(), "value".to_string());
+
+        assert_eq!(session.turn_count(), 1);
+
+        session.clear();
+
+        assert_eq!(session.turn_count(), 0);
+        assert_eq!(session.get_context_value("key"), None);
+    }
+
+    #[test]
+    fn test_role_display() {
+        assert_eq!(format!("{}", Role::User), "User");
+        assert_eq!(format!("{}", Role::Assistant), "Assistant");
+    }
+
+    #[test]
+    fn test_add_turn_with_audio() {
+        let mut session = ConversationSession::new();
+        let audio_data = vec![1u8, 2, 3, 4];
+
+        session.add_turn_with_audio(Role::User, "Test".to_string(), audio_data.clone());
+
+        assert_eq!(session.turn_count(), 1);
+        // Note: audio is not persisted, but should exist in memory
+    }
+
+    #[test]
+    fn test_session_duration() {
+        let session = ConversationSession::new();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let duration = session.duration();
+        assert!(duration.as_millis() >= 10);
+    }
+
+    #[test]
+    fn test_encryption_roundtrip() {
+        // Test that encryption/decryption works correctly
+        let test_data = b"This is a secret message for EVA";
+
+        let encrypted = ConversationSession::encrypt_data(test_data);
+        assert!(encrypted.is_ok(), "Encryption should succeed");
+
+        let encrypted_data = encrypted.unwrap();
+        assert!(encrypted_data.len() > test_data.len(), "Encrypted data should be larger (nonce + ciphertext)");
+
+        let decrypted = ConversationSession::decrypt_data(&encrypted_data);
+        assert!(decrypted.is_ok(), "Decryption should succeed");
+
+        assert_eq!(decrypted.unwrap(), test_data);
+    }
+
+    #[test]
+    fn test_decrypt_too_short() {
+        // Test that short data fails gracefully
+        let short_data = vec![1, 2, 3, 4]; // Less than 12 bytes (nonce size)
+        let result = ConversationSession::decrypt_data(&short_data);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_save_and_load() {
+        let temp_path = std::env::temp_dir().join("eva_test_session.json");
+
+        // Create and save session
+        let mut session = ConversationSession::new();
+        session.add_turn(Role::User, "Hello".to_string());
+        session.add_turn(Role::Assistant, "Hi there!".to_string());
+        session.set_context("test_key".to_string(), "test_value".to_string());
+
+        let original_id = session.session_id().to_string();
+        let original_count = session.turn_count();
+
+        session.save_to_file(&temp_path).expect("Save should succeed");
+
+        // Load and verify
+        let loaded = ConversationSession::load_from_file(&temp_path).expect("Load should succeed");
+
+        assert_eq!(loaded.session_id(), original_id);
+        assert_eq!(loaded.turn_count(), original_count);
+        assert_eq!(loaded.get_context_value("test_key"), Some(&"test_value".to_string()));
+
+        // Cleanup
+        let _ = std::fs::remove_file(&temp_path);
+    }
+
+    #[test]
+    fn test_default_trait() {
+        let session: ConversationSession = Default::default();
+        assert!(!session.session_id().is_empty());
+        assert_eq!(session.turn_count(), 0);
+    }
+
+    #[test]
+    fn test_get_recent_turns_more_than_available() {
+        let mut session = ConversationSession::new();
+        session.add_turn(Role::User, "First".to_string());
+        session.add_turn(Role::Assistant, "Second".to_string());
+
+        // Request more turns than available
+        let recent = session.get_recent_turns(10);
+        assert_eq!(recent.len(), 2);
     }
 }

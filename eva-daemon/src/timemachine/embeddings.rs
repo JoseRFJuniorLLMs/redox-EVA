@@ -283,4 +283,138 @@ mod tests {
         // Same input should produce same output
         assert_eq!(e1, e2);
     }
+
+    #[test]
+    fn test_stop_words_filtered() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        // "the" and "a" are stop words, should be filtered
+        let e1 = engine.encode_with_hash("the quick fox");
+        let e2 = engine.encode_with_hash("quick fox");
+
+        // Should be very similar since "the" is filtered
+        let similarity = EmbeddingEngine::similarity(&e1, &e2);
+        assert!(similarity > 0.8, "Stop words should be filtered, similarity: {}", similarity);
+    }
+
+    #[test]
+    fn test_question_mark_feature() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        let question = engine.encode_with_hash("What is programming?");
+        let statement = engine.encode_with_hash("What is programming");
+
+        // Question should have 1.0 in the question dimension
+        assert_eq!(question[EMBEDDING_DIM - 2], 1.0);
+        assert_eq!(statement[EMBEDDING_DIM - 2], 0.0);
+    }
+
+    #[test]
+    fn test_exclamation_feature() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        let excited = engine.encode_with_hash("Hello world!");
+        let calm = engine.encode_with_hash("Hello world");
+
+        // Exclamation should have 1.0 in the exclamation dimension
+        assert_eq!(excited[EMBEDDING_DIM - 1], 1.0);
+        assert_eq!(calm[EMBEDDING_DIM - 1], 0.0);
+    }
+
+    #[test]
+    fn test_similarity_self() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        let embedding = engine.encode_with_hash("Hello world");
+        let similarity = EmbeddingEngine::similarity(&embedding, &embedding);
+
+        // Self-similarity should be 1.0 (or very close)
+        assert!((similarity - 1.0).abs() < 0.001, "Self-similarity should be ~1.0, got {}", similarity);
+    }
+
+    #[test]
+    fn test_similarity_different_lengths() {
+        // Different length vectors should return 0.0
+        let a = vec![0.1, 0.2, 0.3];
+        let b = vec![0.1, 0.2];
+
+        let similarity = EmbeddingEngine::similarity(&a, &b);
+        assert_eq!(similarity, 0.0);
+    }
+
+    #[test]
+    fn test_similarity_zero_vectors() {
+        let zero = vec![0.0; EMBEDDING_DIM];
+        let normal = vec![0.1; EMBEDDING_DIM];
+
+        let similarity = EmbeddingEngine::similarity(&zero, &normal);
+        assert_eq!(similarity, 0.0, "Zero vector similarity should be 0.0");
+    }
+
+    #[test]
+    fn test_portuguese_stop_words() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        // Portuguese stop words should be in the list
+        assert!(engine.stop_words.contains(&"de"));
+        assert!(engine.stop_words.contains(&"para"));
+        assert!(engine.stop_words.contains(&"que"));
+    }
+
+    #[test]
+    fn test_unicode_support() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        // Should handle UTF-8 properly
+        let e1 = engine.encode_with_hash("café résumé naïve");
+        let e2 = engine.encode_with_hash("日本語 テスト");
+        let e3 = engine.encode_with_hash("Привет мир");
+
+        assert_eq!(e1.len(), EMBEDDING_DIM);
+        assert_eq!(e2.len(), EMBEDDING_DIM);
+        assert_eq!(e3.len(), EMBEDDING_DIM);
+    }
+
+    #[test]
+    fn test_long_text() {
+        let engine = EmbeddingEngine {
+            #[cfg(feature = "timemachine")]
+            session: None,
+            stop_words: EmbeddingEngine::default_stop_words(),
+        };
+
+        // Very long text should still produce valid embedding
+        let long_text = "word ".repeat(1000);
+        let embedding = engine.encode_with_hash(&long_text);
+
+        assert_eq!(embedding.len(), EMBEDDING_DIM);
+
+        // Should be normalized
+        let magnitude: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!((magnitude - 1.0).abs() < 0.01, "Should be normalized, got magnitude {}", magnitude);
+    }
 }
