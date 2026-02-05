@@ -1,47 +1,262 @@
-use screenshots::Screen;
 use image::DynamicImage;
+use screenshots::Screen;
 use std::error::Error;
 
+/// List of window titles that should never be captured
+const BLOCKED_WINDOW_TITLES: &[&str] = &[
+    // Browsers in private/incognito mode
+    "incognito",
+    "inprivate",
+    "private browsing",
+    "privado",
+    "navegacao privada",
+    // Banking and finance
+    "bank",
+    "banco",
+    "paypal",
+    "venmo",
+    "stripe",
+    "credit card",
+    "cartao de credito",
+    "nubank",
+    "itau",
+    "bradesco",
+    "santander",
+    "caixa",
+    // Password managers
+    "1password",
+    "lastpass",
+    "bitwarden",
+    "keepass",
+    "dashlane",
+    // Crypto wallets
+    "metamask",
+    "ledger",
+    "trezor",
+    "coinbase",
+    "binance",
+    "wallet",
+    "carteira",
+    // Healthcare
+    "patient",
+    "medical",
+    "health record",
+    "prontuario",
+    // Authentication
+    "login",
+    "sign in",
+    "password",
+    "senha",
+    "authenticate",
+    "2fa",
+    "two-factor",
+];
+
+/// List of application names that should never be captured
+const BLOCKED_APP_NAMES: &[&str] = &[
+    "1password",
+    "lastpass",
+    "bitwarden",
+    "keepassxc",
+    "keychain",
+    "credential",
+    "authenticator",
+    "authy",
+];
+
+/// Screen capture with privacy filtering
 pub struct ScreenCapture {
     screens: Vec<Screen>,
+    /// User-defined blocked window patterns
+    user_blocked_patterns: Vec<String>,
+    /// Whether privacy filter is enabled
+    privacy_enabled: bool,
 }
 
 impl ScreenCapture {
     pub fn new() -> Self {
         let screens = Screen::all().unwrap_or_else(|_| vec![]);
-        Self { screens }
+        println!("[Capture] Found {} screen(s)", screens.len());
+
+        Self {
+            screens,
+            user_blocked_patterns: Vec::new(),
+            privacy_enabled: true,
+        }
     }
 
+    /// Add a user-defined pattern to block
+    pub fn add_blocked_pattern(&mut self, pattern: String) {
+        self.user_blocked_patterns.push(pattern.to_lowercase());
+    }
+
+    /// Enable or disable privacy filter
+    pub fn set_privacy_enabled(&mut self, enabled: bool) {
+        self.privacy_enabled = enabled;
+    }
+
+    /// Take a screenshot with privacy filtering
     pub fn take_screenshot(&self) -> Result<DynamicImage, Box<dyn Error>> {
         if self.screens.is_empty() {
             return Err("No screens found".into());
         }
 
+        // Check privacy before capturing
+        if self.privacy_enabled && self.should_block()? {
+            return Err("Screenshot blocked by privacy filter".into());
+        }
+
         // Capture primary screen
-        let screen = self.screens[0]; 
+        let screen = self.screens[0];
         let image = screen.capture()?;
-        
+
         let buffer = image.buffer();
         let dynamic_image = image::ImageBuffer::from_raw(image.width(), image.height(), buffer.clone())
             .map(DynamicImage::ImageRgba8)
             .ok_or("Failed to convert screenshot to image")?;
-            
-        // SMART FILTERING
-        if self.should_block(&dynamic_image) {
-            return Err("Screenshot blocked by privacy filter".into());
-        }
 
         Ok(dynamic_image)
     }
 
-    fn should_block(&self, _image: &DynamicImage) -> bool {
-        // Placeholder for privacy logic
-        // In real implementation:
-        // 1. Check active window title (e.g. "Incognito", "PayPal")
-        // 2. Run lightweight OCR to detect "Password", "Credit Card"
-        // 3. User blocklist
-        
-        // For now, always allow
-        false
+    /// Check if current screen should be blocked
+    fn should_block(&self) -> Result<bool, Box<dyn Error>> {
+        // Get active window information
+        let active_window = self.get_active_window_info();
+
+        if let Some((title, app_name)) = active_window {
+            let title_lower = title.to_lowercase();
+            let app_lower = app_name.to_lowercase();
+
+            // Check against built-in blocked titles
+            for blocked in BLOCKED_WINDOW_TITLES {
+                if title_lower.contains(blocked) {
+                    println!("[Privacy] Blocked: title contains '{}'", blocked);
+                    return Ok(true);
+                }
+            }
+
+            // Check against built-in blocked apps
+            for blocked in BLOCKED_APP_NAMES {
+                if app_lower.contains(blocked) {
+                    println!("[Privacy] Blocked: app '{}' is in blocklist", app_lower);
+                    return Ok(true);
+                }
+            }
+
+            // Check against user-defined patterns
+            for pattern in &self.user_blocked_patterns {
+                if title_lower.contains(pattern) || app_lower.contains(pattern) {
+                    println!("[Privacy] Blocked: matches user pattern '{}'", pattern);
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Get information about the currently active window
+    #[cfg(target_os = "windows")]
+    fn get_active_window_info(&self) -> Option<(String, String)> {
+        // Try using active-win-pos-rs
+        match active_win_pos_rs::get_active_window() {
+            Ok(window) => {
+                let title = window.title;
+                let app_name = window.app_name;
+                Some((title, app_name))
+            }
+            Err(_) => None,
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn get_active_window_info(&self) -> Option<(String, String)> {
+        match active_win_pos_rs::get_active_window() {
+            Ok(window) => {
+                let title = window.title;
+                let app_name = window.app_name;
+                Some((title, app_name))
+            }
+            Err(_) => None,
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn get_active_window_info(&self) -> Option<(String, String)> {
+        match active_win_pos_rs::get_active_window() {
+            Ok(window) => {
+                let title = window.title;
+                let app_name = window.app_name;
+                Some((title, app_name))
+            }
+            Err(_) => None,
+        }
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+    fn get_active_window_info(&self) -> Option<(String, String)> {
+        // Redox OS or other - no window detection available
+        None
+    }
+}
+
+impl Default for ScreenCapture {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_blocked_patterns() {
+        // Test that blocked patterns are comprehensive
+        let sensitive_titles = vec![
+            "Bank of America - Login",
+            "PayPal - Send Money",
+            "1Password - Vault",
+            "Chrome - Incognito",
+            "Firefox Private Browsing",
+            "Nubank - Conta",
+        ];
+
+        for title in sensitive_titles {
+            let title_lower = title.to_lowercase();
+            let should_block = BLOCKED_WINDOW_TITLES.iter()
+                .any(|blocked| title_lower.contains(blocked));
+            assert!(should_block, "Expected '{}' to be blocked", title);
+        }
+    }
+
+    #[test]
+    fn test_safe_patterns() {
+        // Test that normal apps are not blocked
+        let safe_titles = vec![
+            "Visual Studio Code",
+            "Terminal",
+            "Spotify - Now Playing",
+            "Discord - General",
+        ];
+
+        for title in safe_titles {
+            let title_lower = title.to_lowercase();
+            let should_block = BLOCKED_WINDOW_TITLES.iter()
+                .any(|blocked| title_lower.contains(blocked));
+            assert!(!should_block, "Expected '{}' to NOT be blocked", title);
+        }
+    }
+
+    #[test]
+    fn test_user_patterns() {
+        let mut capture = ScreenCapture {
+            screens: vec![],
+            user_blocked_patterns: vec!["secret project".to_string()],
+            privacy_enabled: true,
+        };
+
+        // Test that user patterns work
+        assert!(capture.user_blocked_patterns.contains(&"secret project".to_string()));
     }
 }

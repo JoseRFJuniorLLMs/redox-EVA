@@ -32,6 +32,11 @@ argon2 = "0.5"
 flate2 = "1.0"
 # Added for machine-specific key derivation
 hostname = "0.3"
+# Added for semantic hashing and text processing
+unicode-segmentation = "1.10"
+sha2 = "0.10"
+# Added for window title detection (privacy filter)
+active-win-pos-rs = "0.8"
 
 [features]
 default = []
