@@ -1,0 +1,16 @@
+[source]
+path = "drivers/intel-npu"
+
+[build]
+template = "cargo"
+
+[package]
+name = "intel-npu"
+version = "0.1.0"
+# Capabilities required for userspace DMA and hardware access
+permissions = [
+    "CAP_SYS_PHYS",    # virttophys translation
+    "CAP_IO_PORT",     # PCI config space access
+    "CAP_MMAP_PHYS",   # Physical memory mapping
+]
+dependencies = ["pcid"]

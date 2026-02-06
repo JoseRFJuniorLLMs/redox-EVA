@@ -7,7 +7,7 @@ use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Nonce,
 };
-use argon2::{Argon2, password_hash::SaltString};
+use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 
 /// Role in conversation
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

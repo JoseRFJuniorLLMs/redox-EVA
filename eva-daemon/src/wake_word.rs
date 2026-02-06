@@ -155,7 +155,7 @@ impl WakeWordDetector {
     }
 
     /// Energy-based detection using cross-correlation
-    fn detect_energy(&self) -> bool {
+    fn detect_energy(&mut self) -> bool {
         if self.buffer.len() < self.energy_pattern.len() * 2 {
             return false;
         }

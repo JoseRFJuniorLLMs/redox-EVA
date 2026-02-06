@@ -1,6 +1,7 @@
 mod tls;
 mod websocket;
 mod gemini;
+mod eva_mind;
 mod audio;
 mod wake_word;
 mod vad;
@@ -23,7 +24,7 @@ mod stt;
 use audio::AudioDevice;
 use wake_word::WakeWordDetector;
 use vad::VAD;
-use gemini::{GeminiClient, GeminiConfig};
+use eva_mind::{EvaMindClient, EvaMindConfig, EvaMindResponse};
 use audio_player::AudioPlayer;
 use session::{ConversationSession, Role};
 use command_parser::CommandParser;
@@ -128,28 +129,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut anim_processing = Animation::processing();
     let mut anim_speaking = Animation::speaking();
 
-    terminal_ui.add_system_message("[12/13] Connecting to Gemini API...");
+    terminal_ui.add_system_message("[12/13] Connecting to EVA-Mind...");
     terminal_ui.draw(&status_indicator, &statistics);
-    let config = GeminiConfig::default();
-    
-    let mut gemini = if config.api_key.is_empty() {
-        terminal_ui.add_system_message("⚠️  GOOGLE_API_KEY not set - running in demo mode");
-        terminal_ui.add_system_message("   Set API key: export GOOGLE_API_KEY=your_key");
-        terminal_ui.draw(&status_indicator, &statistics);
-        None
-    } else {
-        match GeminiClient::connect(config).await {
-            Ok(client) => {
-                terminal_ui.add_system_message("✅ Connected to Gemini API");
-                terminal_ui.draw(&status_indicator, &statistics);
-                Some(client)
+
+    let eva_config = EvaMindConfig::default();
+    terminal_ui.add_system_message(&format!("   URL: {}", eva_config.ws_url));
+    terminal_ui.draw(&status_indicator, &statistics);
+
+    let mut eva_mind: Option<EvaMindClient> = match EvaMindClient::connect(eva_config).await {
+        Ok(mut client) => {
+            terminal_ui.add_system_message("✅ Connected to EVA-Mind");
+            terminal_ui.draw(&status_indicator, &statistics);
+
+            // Start call session
+            match client.start_call().await {
+                Ok(_) => {
+                    terminal_ui.add_system_message(&format!("✅ Session started: {}", client.session_id()));
+                    terminal_ui.draw(&status_indicator, &statistics);
+                    Some(client)
+                }
+                Err(e) => {
+                    terminal_ui.add_system_message(&format!("⚠️  Could not start session: {}", e));
+                    terminal_ui.add_system_message("   Running in demo mode");
+                    terminal_ui.draw(&status_indicator, &statistics);
+                    None
+                }
             }
-            Err(e) => {
-                terminal_ui.add_system_message(&format!("⚠️  Could not connect to Gemini: {}", e));
-                terminal_ui.add_system_message("   Running in demo mode");
-                terminal_ui.draw(&status_indicator, &statistics);
-                None
-            }
+        }
+        Err(e) => {
+            terminal_ui.add_system_message(&format!("⚠️  Could not connect to EVA-Mind: {}", e));
+            terminal_ui.add_system_message("   Running in demo mode");
+            terminal_ui.draw(&status_indicator, &statistics);
+            None
         }
     };
 
@@ -185,15 +196,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start UI
     terminal_ui.add_system_message("EVA OS Started");
     terminal_ui.add_system_message(&format!("Session ID: {}", session.session_id()));
-    
-    if gemini.is_none() {
-        terminal_ui.add_system_message("Running in DEMO MODE (No API Key)");
+
+    if eva_mind.is_none() {
+        terminal_ui.add_system_message("Running in DEMO MODE (No Connection)");
     }
 
     status_indicator.set_status(EvaStatus::Idle);
     terminal_ui.draw(&status_indicator, &statistics);
 
+    // Pronto para receber áudio
+    if eva_mind.is_some() {
+        terminal_ui.add_system_message("🎤 Diga 'Hey EVA' para começar...");
+    }
+    terminal_ui.draw(&status_indicator, &statistics);
+
     // Main conversation loop
+    let mut frame_count = 0u64;
     loop {
         // Reset animations
         anim_listening.reset();
@@ -209,6 +227,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
+        // Silently process audio
+        frame_count += 1;
+
         // 2. Check for wake word
         if wake_word.detect(&chunk) {
             status_indicator.set_status(EvaStatus::Listening);
@@ -218,179 +239,131 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             
             wake_word.reset();
             
-            // 3. Capture command until silence
-            let mut audio_buffer = Vec::new();
+            // 3. Capture and STREAM audio in real-time (like EVA-Mobile)
+            let mut total_samples = 0usize;
             let mut silence_count = 0;
-            
+            let mut chunk_count = 0u32;
+            let mut response_chunks = 0u32;
+
             loop {
-                // Update stats occasionally to show activity? 
-                // For now, blocking audio capture in loop prevents frequent UI updates unless we spawn
-                // But simplified TUI: just capture
-                
                 let audio_chunk = match audio.capture_chunk().await {
                     Ok(c) => c,
-                    Err(_) => break, // Stop recording on error
+                    Err(_) => break,
                 };
-                
+
+                // Stream audio to EVA-Mind in real-time (like EVA-Mobile)
+                if let Some(ref mut eva_client) = eva_mind {
+                    // Convert f32 samples to PCM16 bytes
+                    let audio_bytes: Vec<u8> = audio_chunk
+                        .iter()
+                        .flat_map(|&sample| {
+                            let sample_i16 = (sample * i16::MAX as f32) as i16;
+                            sample_i16.to_le_bytes()
+                        })
+                        .collect();
+
+                    // Send immediately (streaming)
+                    if let Err(e) = eva_client.send_audio(&audio_bytes).await {
+                        terminal_ui.add_system_message(&format!("Stream error: {}", e));
+                        break;
+                    }
+                    chunk_count += 1;
+
+                    // Also check for incoming audio response (non-blocking)
+                    match eva_client.receive().await {
+                        Ok(Some(EvaMindResponse::Audio(audio_data))) => {
+                            response_chunks += 1;
+                            if let Err(e) = audio_player.play_pcm(&audio_data).await {
+                                terminal_ui.add_system_message(&format!("Playback error: {}", e));
+                            }
+                        }
+                        Ok(Some(EvaMindResponse::Control(msg))) => {
+                            if let Some(msg_type) = msg.get("type").and_then(|v| v.as_str()) {
+                                terminal_ui.add_system_message(&format!("Control: {}", msg_type));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                total_samples += audio_chunk.len();
+
+                // Check for silence to end turn
                 if vad.is_speech(&audio_chunk) {
-                    audio_buffer.extend_from_slice(&audio_chunk);
                     silence_count = 0;
                 } else {
                     silence_count += 1;
-                    
-                    if silence_count > 10 {
-                        // End of speech
+                    if silence_count > 15 {
+                        // End of speech - stop streaming
                         break;
                     }
                 }
-                
-                if audio_buffer.len() > 48000 * 30 {
+
+                if total_samples > 48000 * 30 {
                     terminal_ui.add_system_message("Max recording time reached");
                     break;
                 }
 
-                // Animate listening (update every few frames to avoid too much flickering)
-                if audio_buffer.len() % 2 == 0 {
+                // Animate listening
+                if chunk_count % 5 == 0 {
                     statistics.update_all();
                     status_indicator.set_symbol(anim_listening.next_frame());
                     terminal_ui.draw(&status_indicator, &statistics);
                 }
             }
-            
-            terminal_ui.add_system_message(&format!("Captured {} samples", audio_buffer.len()));
+
+            terminal_ui.add_system_message(&format!("Streamed {} chunks, received {} responses", chunk_count, response_chunks));
             statistics.turns += 1;
             terminal_ui.draw(&status_indicator, &statistics);
 
-            // 4. Process
-            status_indicator.set_status(EvaStatus::Processing);
-            terminal_ui.draw(&status_indicator, &statistics);
+            // 4. Wait for response audio
+            if let Some(ref mut eva_client) = eva_mind {
+                status_indicator.set_status(EvaStatus::Speaking);
+                terminal_ui.draw(&status_indicator, &statistics);
 
-            if let Some(ref mut gemini_client) = gemini {
-                // Convert to bytes
-                let audio_bytes: Vec<u8> = audio_buffer
-                    .iter()
-                    .flat_map(|&sample| {
-                        let sample_i16 = (sample * i16::MAX as f32) as i16;
-                        sample_i16.to_le_bytes()
-                    })
-                    .collect();
-                
-                // Send to Gemini
-                if let Err(e) = gemini_client.send_audio(&audio_bytes).await {
-                    status_indicator.set_status(EvaStatus::Error);
-                    terminal_ui.add_system_message(&format!("Gemini Error: {}", e));
-                } else {
-                    // Wait for response with animation
-                    let receive_future = gemini_client.receive();
-                    tokio::pin!(receive_future);
+                let timeout = tokio::time::Duration::from_secs(15);
+                let start = tokio::time::Instant::now();
+                let mut received_audio = false;
 
-                    let response_result = loop {
-                        tokio::select! {
-                            result = &mut receive_future => break result,
-                            _ = tokio::time::sleep(anim_processing.frame_duration()) => {
-                                statistics.update_all();
-                                status_indicator.set_symbol(anim_processing.next_frame());
-                                terminal_ui.draw(&status_indicator, &statistics);
+                while start.elapsed() < timeout {
+                    // Animate while waiting
+                    statistics.update_all();
+                    status_indicator.set_symbol(anim_speaking.next_frame());
+                    terminal_ui.draw(&status_indicator, &statistics);
+
+                    // Try to receive audio
+                    match eva_client.receive().await {
+                        Ok(Some(EvaMindResponse::Audio(audio_data))) => {
+                            received_audio = true;
+                            // Play audio (raw PCM bytes from EVA-Mind)
+                            if let Err(e) = audio_player.play_pcm(&audio_data).await {
+                                terminal_ui.add_system_message(&format!("Audio Playback Error: {}", e));
                             }
                         }
-                    };
-
-                    match response_result {
-                        Ok(Some(response)) => {
-                            if let Some(content) = response.server_content {
-                                if let Some(turn) = content.model_turn {
-                                    let mut response_text = String::new();
-                                    let mut has_audio = false;
-                                    
-                                    for part in turn.parts {
-                                        // Extract text
-                                        if let Some(text) = part.text {
-                                            response_text.push_str(&text);
-                                        }
-                                        
-                                        // Extract audio
-                                        if let Some(audio_data) = part.inline_data {
-                                            has_audio = true;
-                                            
-                                            // Play audio response with animation
-                                            status_indicator.set_status(EvaStatus::Speaking);
-                                            
-                                            let play_future = audio_player.play_response(&audio_data.data);
-                                            tokio::pin!(play_future);
-                                            
-                                            let play_result = loop {
-                                                tokio::select! {
-                                                    result = &mut play_future => break result,
-                                                    _ = tokio::time::sleep(anim_speaking.frame_duration()) => {
-                                                        statistics.update_all();
-                                                        status_indicator.set_symbol(anim_speaking.next_frame());
-                                                        terminal_ui.draw(&status_indicator, &statistics);
-                                                    }
-                                                }
-                                            };
-
-                                            if let Err(e) = play_result {
-                                                terminal_ui.add_system_message(&format!("Audio Playback Error: {}", e));
-                                                // Fallback to text handled by printing later
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Update conversation log
-                                    if !response_text.is_empty() {
-                                        terminal_ui.add_eva_message(&response_text);
-                                        session.add_turn(Role::Assistant, response_text.clone());
-                                        
-                                        // Detect emotion
-                                        let detected_emotion = _emotion_detector.detect(&response_text);
-                                        status_indicator.set_emotion(detected_emotion);
-                                        terminal_ui.draw(&status_indicator, &statistics);
-
-                                        // Save session
-                                        if let Err(e) = session.save_to_file("session.json") {
-                                            terminal_ui.add_system_message(&format!("Failed to save session: {}", e));
-                                        }
-                                        
-                                        // Parse for commands
-                                        if let Ok(intent) = command_parser.parse(&response_text) {
-                                            use command_parser::CommandIntent;
-                                            
-                                            match intent {
-                                                CommandIntent::Unknown => {
-                                                    // Just conversation
-                                                }
-                                                _ => {
-                                                    // Execute command
-                                                    status_indicator.set_status(EvaStatus::Executing);
-                                                    terminal_ui.draw(&status_indicator, &statistics);
-                                                    
-                                                    match command_executor.execute(intent).await {
-                                                        Ok(result) => {
-                                                            statistics.commands_executed += 1;
-                                                            terminal_ui.add_system_message(&format!("Command Result: {}", result));
-                                                            
-                                                            session.add_turn(
-                                                                Role::Assistant,
-                                                                format!("Command result: {}", result)
-                                                            );
-                                                            // Save session
-                                                            session.save_to_file("session.json").ok();
-                                                        }
-                                                        Err(e) => {
-                                                            status_indicator.set_status(EvaStatus::Error);
-                                                            terminal_ui.add_system_message(&format!("Command Error: {}", e));
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                        Ok(Some(EvaMindResponse::Control(msg))) => {
+                            // Handle control messages
+                            if let Some(msg_type) = msg.get("type").and_then(|v| v.as_str()) {
+                                terminal_ui.add_system_message(&format!("Control: {}", msg_type));
                             }
                         }
-                        Ok(None) => terminal_ui.add_system_message("No response from Gemini"),
-                        Err(e) => terminal_ui.add_system_message(&format!("Receive Error: {}", e)),
+                        Ok(None) => {
+                            // No message, continue
+                            if received_audio {
+                                // Got audio, small pause then continue
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            terminal_ui.add_system_message(&format!("Receive Error: {}", e));
+                            break;
+                        }
                     }
+
+                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                }
+
+                if !received_audio {
+                    terminal_ui.add_system_message("No audio response received");
                 }
             } else {
                 // Demo mode logic

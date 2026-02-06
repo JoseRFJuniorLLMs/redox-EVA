@@ -12,7 +12,6 @@ impl WebSocketClient {
     pub async fn connect(url: &str) -> Result<Self, Box<dyn std::error::Error>> {
         println!("🔗 Conectando ao WebSocket: {}", url);
 
-        // Conectar (TLS automático para wss://)
         let url = Url::parse(url)?;
         let (ws_stream, response) = connect_async(url).await?;
 
@@ -36,9 +35,26 @@ impl WebSocketClient {
     /// Receive next message
     pub async fn receive(&mut self) -> Result<Option<Message>, Box<dyn std::error::Error>> {
         match self.stream.next().await {
-            Some(Ok(msg)) => Ok(Some(msg)),
-            Some(Err(e)) => Err(Box::new(e)),
-            None => Ok(None),
+            Some(Ok(msg)) => {
+                // Log message type for debugging
+                match &msg {
+                    Message::Text(t) => println!("📥 WS Text: {} bytes", t.len()),
+                    Message::Binary(b) => println!("📥 WS Binary: {} bytes", b.len()),
+                    Message::Close(c) => println!("📥 WS Close: {:?}", c),
+                    Message::Ping(_) => println!("📥 WS Ping"),
+                    Message::Pong(_) => println!("📥 WS Pong"),
+                    _ => println!("📥 WS Other"),
+                }
+                Ok(Some(msg))
+            },
+            Some(Err(e)) => {
+                println!("❌ WS Error: {:?}", e);
+                Err(format!("WebSocket error: {}", e).into())
+            },
+            None => {
+                println!("⚠️ WS Stream ended");
+                Ok(None)
+            },
         }
     }
 

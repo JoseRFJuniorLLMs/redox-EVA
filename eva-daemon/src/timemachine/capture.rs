@@ -75,7 +75,7 @@ pub struct ScreenCapture {
 
 impl ScreenCapture {
     pub fn new() -> Self {
-        let screens = Screen::all().unwrap_or_else(|_| vec![]);
+        let screens = Screen::all().unwrap_or_default();
         println!("[Capture] Found {} screen(s)", screens.len());
 
         Self {
@@ -108,7 +108,7 @@ impl ScreenCapture {
 
         // Capture primary screen
         let screen = self.screens[0];
-        let image = screen.capture()?;
+        let image = screen.capture().ok_or("Failed to capture screen")?;
 
         let buffer = image.buffer();
         let dynamic_image = image::ImageBuffer::from_raw(image.width(), image.height(), buffer.clone())

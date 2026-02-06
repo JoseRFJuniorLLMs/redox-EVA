@@ -1,0 +1,27 @@
+[package]
+name = "intel-npu"
+version = "0.1.0"
+edition = "2021"
+authors = ["EVA OS Team <jose@eva-os.org>"]
+description = "Intel Meteor Lake NPU Driver for Redox OS (Userspace)"
+license = "MIT"
+
+[dependencies]
+bitflags = "1.3"
+log = "0.4"
+env_logger = "0.10"
+byteorder = "1.5"
+
+[target.'cfg(target_os = "redox")'.dependencies]
+syscall = "0.5"
+redox-daemon = "0.1"
+redox_event = "0.4"
+pcid_interface = { git = "https://gitlab.redox-os.org/redox-os/pcid_interface.git" }
+
+[target.'cfg(not(target_os = "redox"))'.dependencies]
+# Stubs for development/testing on Linux
+libc = "0.2"
+
+[profile.release]
+opt-level = 2
+lto = true
